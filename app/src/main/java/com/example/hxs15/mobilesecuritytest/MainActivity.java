@@ -1,5 +1,7 @@
 package com.example.hxs15.mobilesecuritytest;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -8,10 +10,13 @@ import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
+
+    private SharedPreferences sharedPreferences;
 
     private WebView webView;
     private String JWBUrl="http://jwb.sysu.edu.cn/";
@@ -47,6 +52,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void logout(View view){
+        //退出不会清空用户数据，仅仅除去登陆状态
+        sharedPreferences=getApplicationContext().getSharedPreferences("MyPreference",MODE_PRIVATE);
+        SharedPreferences.Editor editor=sharedPreferences.edit();
+        editor.putString("lastPswd",null);
+        editor.apply();
+        gotoLogin();
+    }
+
+    public void gotoLogin(){
+        Intent intent =new Intent(this,SignInActivity.class);
+        startActivity(intent);
+        this.finish();
+    }
 
 
     //WebViewClient主要帮助WebView处理各种通知、请求事件
@@ -71,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
             webView.loadUrl(url);
             return true;
         }
-
     };
+
+
 }

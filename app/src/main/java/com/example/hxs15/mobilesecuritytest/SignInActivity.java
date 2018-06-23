@@ -20,7 +20,7 @@ import android.widget.Toast;
 public class SignInActivity extends AppCompatActivity{
     private SharedPreferences sharedPreferences;
     private int SignMode=1;
-    private String defaultString="迹趣官方";
+    private String defaultString="官方默认字段";
 
 
     @Override
@@ -35,11 +35,13 @@ public class SignInActivity extends AppCompatActivity{
         sharedPreferences=getApplicationContext().getSharedPreferences("MyPreference",MODE_PRIVATE);
         String lastUser=sharedPreferences.getString("lastUser",null);
         String lastPswd=sharedPreferences.getString("lastPswd",null);
+        //lastPswd非空表示已登录，直接跳转到主页，否则重新登录
         if(!(TextUtils.isEmpty(lastUser) || TextUtils.isEmpty(lastPswd))){
+            goToMain(lastUser,lastPswd);
+        }
+        else if(!TextUtils.isEmpty(lastUser)){
             EditText name=findViewById(R.id.login_name_edit);
-            EditText pswd=findViewById(R.id.login_password_edit);
             name.setText(lastUser);
-            pswd.setText(lastPswd);
         }
     }
 
@@ -57,7 +59,7 @@ public class SignInActivity extends AppCompatActivity{
                 if(isPsdRight){
                     SharedPreferences.Editor editor=sharedPreferences.edit();
                     editor.putString("lastUser",name.getText().toString());
-                    editor.putString("lastPswd",pswd.getText().toString());
+                    editor.putString("lastPswd",MD5Utils.myMD5Encrypt(pswd.getText().toString()));
                     editor.apply();
                     goToMain(name.getText().toString(),pswd.getText().toString());
                 }
@@ -78,8 +80,8 @@ public class SignInActivity extends AppCompatActivity{
         else if(SignMode==2){
             if(!(TextUtils.isEmpty(name.getText()) || TextUtils.isEmpty(pswd.getText()) || TextUtils.isEmpty(cpsd.getText()))){
                 if(pswd.getText().toString().equals(cpsd.getText().toString())){
-                    String spname=sharedPreferences.getString(name.getText().toString(),defaultString);
-                    if (!spname.equals(defaultString)) {
+                    String spname=sharedPreferences.getString(name.getText().toString(),null);
+                    if (!TextUtils.isEmpty(spname)) {
                         Toast.makeText(this,"用户名已经被使用啦！",Toast.LENGTH_SHORT).show();
                     }
                     else if(pswd.getText().toString().length()<8){
@@ -88,9 +90,9 @@ public class SignInActivity extends AppCompatActivity{
                     else{
                         SharedPreferences.Editor editor=sharedPreferences.edit();
                         editor.putString("lastUser",name.getText().toString());
-                        editor.putString("lastPswd",pswd.getText().toString());
+                        editor.putString("lastPswd",MD5Utils.myMD5Encrypt(pswd.getText().toString()));
                         //存储为SharedPreference
-                        editor.putString(name.getText().toString(),pswd.getText().toString());
+                        editor.putString(name.getText().toString(),MD5Utils.myMD5Encrypt(pswd.getText().toString()));
                         //存储为File
                         saveToFile(name.getText().toString(),pswd.getText().toString());
                         //存储为SQL DB
@@ -127,8 +129,9 @@ public class SignInActivity extends AppCompatActivity{
     }
 
     public boolean confirmUser(String name,String psd){
-        String spswd=sharedPreferences.getString(name,defaultString);
-        if(spswd.equals(psd)) return true;
+        String spswd=sharedPreferences.getString(name,null);
+        if(spswd==null) return false;
+        else if(spswd.equals(MD5Utils.myMD5Encrypt(psd))) return true;
         else return false;
     }
 
@@ -149,6 +152,7 @@ public class SignInActivity extends AppCompatActivity{
             tv.setVisibility(View.GONE);
             ltv.setVisibility(View.GONE);
             et.setVisibility(View.GONE);
+            btn.setText("注册");
         }
         else if(mode==2){
             CL1.setVisibility(View.GONE);
@@ -169,10 +173,10 @@ public class SignInActivity extends AppCompatActivity{
     }
 
     public void saveToFile(String name,String pswd){
-
+        //密码加密，用户名明文
     }
 
     public void saveToDatabase(String name,String pswd){
-
+        //密码加密，用户名明文
     }
 }
