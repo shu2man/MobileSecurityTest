@@ -89,7 +89,12 @@ public class SignInActivity extends AppCompatActivity{
                         SharedPreferences.Editor editor=sharedPreferences.edit();
                         editor.putString("lastUser",name.getText().toString());
                         editor.putString("lastPswd",pswd.getText().toString());
+                        //存储为SharedPreference
                         editor.putString(name.getText().toString(),pswd.getText().toString());
+                        //存储为File
+                        saveToFile(name.getText().toString(),pswd.getText().toString());
+                        //存储为SQL DB
+                        saveToDatabase(name.getText().toString(),pswd.getText().toString());
                         editor.apply();
                         goToMain(name.getText().toString(),pswd.getText().toString());
                     }
@@ -161,5 +166,13 @@ public class SignInActivity extends AppCompatActivity{
     public void fromRegister2Login(View view){
         SignMode=1;
         registerVisibility(1);
+    }
+
+    public void saveToFile(String name,String pswd){
+
+    }
+
+    public void saveToDatabase(String name,String pswd){
+
     }
 }
