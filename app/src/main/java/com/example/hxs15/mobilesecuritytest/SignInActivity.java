@@ -1,7 +1,11 @@
 package com.example.hxs15.mobilesecuritytest;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileObserver;
@@ -24,12 +28,15 @@ import java.io.IOException;
  * Created by hxs15 on 2018-6-23.
  */
 
-public class SignInActivity extends AppCompatActivity{
+public class SignInActivity extends Activity {
     private SharedPreferences sharedPreferences;
     private int SignMode=1;
     private String defaultString="官方默认字段";
 
     private String CONFIGURE_FILE="MST_Configure.txt";
+
+    private SQLiteDatabase DB;
+    private String MyDB="MST.db";
 
 
     @Override
@@ -64,7 +71,7 @@ public class SignInActivity extends AppCompatActivity{
         EditText cpsd=findViewById(R.id.confirm_password_edit);
         if(SignMode==1){
             if(!(TextUtils.isEmpty(name.getText()) || TextUtils.isEmpty(pswd.getText()))){
-                boolean isPsdRight=confirmUser(name.getText().toString(),pswd.getText().toString(),2);
+                boolean isPsdRight=confirmUser(name.getText().toString(),pswd.getText().toString(),3);//1-sp,2-file,3-sqlite
                 if(isPsdRight){
                     SharedPreferences.Editor editor=sharedPreferences.edit();
                     editor.putString("lastUser",name.getText().toString());
@@ -96,14 +103,17 @@ public class SignInActivity extends AppCompatActivity{
                     else if(pswd.getText().toString().length()<8){
                         Toast.makeText(this,"密码长度不能小于8哦",Toast.LENGTH_SHORT).show();
                     }
+                    else if(pswd.getText().toString().equals(defaultString)){
+                        Toast.makeText(this,"密码强度不足",Toast.LENGTH_SHORT).show();
+                    }
                     else{
                         SharedPreferences.Editor editor=sharedPreferences.edit();
                         editor.putString("lastUser",name.getText().toString());
                         editor.putString("lastPswd",MD5Utils.myMD5Encrypt(pswd.getText().toString()));
                         //存储为SharedPreference
-                        editor.putString(name.getText().toString(),MD5Utils.myMD5Encrypt(pswd.getText().toString()));
+                        //editor.putString(name.getText().toString(),MD5Utils.myMD5Encrypt(pswd.getText().toString()));
                         //存储为File
-                        saveToFile(name.getText().toString(),pswd.getText().toString());
+                        //saveToFile(name.getText().toString(),pswd.getText().toString());
                         //存储为SQL DB
                         saveToDatabase(name.getText().toString(),pswd.getText().toString());
                         editor.apply();
@@ -138,21 +148,11 @@ public class SignInActivity extends AppCompatActivity{
     }
 
     public boolean confirmUser(String name,String rawPsd,int mode){//mode:1-sharedPreferences,2-file,3-database
-        if(mode==1){
-            String spswd=sharedPreferences.getString(name,null);
-            if(spswd==null) return false;
-            else if(spswd.equals(MD5Utils.myMD5Encrypt(rawPsd))) return true;
-            else return false;
-        }
-        else if(mode==2){
-            String epsd=getEncryptedPsdFromFile(name);
-            if(epsd.equals(defaultString)) return false;
-            else return epsd.equals(MD5Utils.myMD5Encrypt(rawPsd));
-        }
-        else if(mode==3){
-
-        }
-        return false;
+        String epsd="";
+        if(mode==1) epsd=sharedPreferences.getString(name,defaultString);
+        else if(mode==2) epsd=getEncryptedPsdFromFile(name);
+        else if(mode==3) epsd=getEncryptedPsdFromDB(name);
+        return (!epsd.equals(defaultString)) && epsd.equals(MD5Utils.myMD5Encrypt(rawPsd));
     }
 
     public void goToRegister(View view){
@@ -250,5 +250,39 @@ public class SignInActivity extends AppCompatActivity{
 
     public void saveToDatabase(String name,String pswd){
         //密码加密，用户名明文
+        initDB();
+        try{
+            DB.execSQL("create table if not exists user(name varchar(50),pswd varchar(50))");
+            DB.execSQL(String.format("insert into user values('%s','%s')",name,MD5Utils.myMD5Encrypt(pswd)));
+            //DB.execSQL("insert into user values()",new String[]{name,MD5Utils.myMD5Encrypt(pswd)});//这种方式会出错
+            Toast.makeText(this,"数据库插入成功",Toast.LENGTH_SHORT).show();
+        }catch (SQLException e){
+            e.printStackTrace();
+            Toast.makeText(this,"数据库操作失败",Toast.LENGTH_SHORT).show();
+        }
+        DB.close();
+    }
+    public String getEncryptedPsdFromDB(String name){
+        initDB();
+        try{
+            //Cursor res=DB.rawQuery("select * from user where name='?'",new String[]{name});//这种方式会出错
+            Cursor res=DB.query("user",null,"name=?",new String[]{name},null,null,null);
+            res.moveToFirst();
+            DB.close();
+            Toast.makeText(this,res.getString(res.getColumnIndex("name"))+"   "+res.getString(res.getColumnIndex("pswd")),Toast.LENGTH_SHORT).show();
+            String ep=res.getString(res.getColumnIndex("pswd"));
+            res.close();
+            return ep;
+        }catch (SQLException e){
+            e.printStackTrace();
+            Toast.makeText(this,"数据库操作失败",Toast.LENGTH_SHORT).show();
+        }
+        DB.close();
+        return defaultString;
+
+    }
+
+    public void initDB(){
+        DB=SQLiteDatabase.openOrCreateDatabase(this.getFilesDir().toString()+"/"+MyDB,null);
     }
 }
