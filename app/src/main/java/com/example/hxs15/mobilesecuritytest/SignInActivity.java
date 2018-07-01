@@ -71,7 +71,7 @@ public class SignInActivity extends Activity {
         EditText cpsd=findViewById(R.id.confirm_password_edit);
         if(SignMode==1){
             if(!(TextUtils.isEmpty(name.getText()) || TextUtils.isEmpty(pswd.getText()))){
-                boolean isPsdRight=confirmUser(name.getText().toString(),pswd.getText().toString(),3);//1-sp,2-file,3-sqlite
+                boolean isPsdRight=confirmUser(name.getText().toString(),pswd.getText().toString(),3);//0-all,1-sp,2-file,3-sqlite
                 if(isPsdRight){
                     SharedPreferences.Editor editor=sharedPreferences.edit();
                     editor.putString("lastUser",name.getText().toString());
@@ -147,9 +147,18 @@ public class SignInActivity extends Activity {
         this.finish();
     }
 
-    public boolean confirmUser(String name,String rawPsd,int mode){//mode:1-sharedPreferences,2-file,3-database
+    //mode:0-所有,1-sharedPreferences,2-file,3-database
+    public boolean confirmUser(String name,String rawPsd,int mode){
         String epsd="";
-        if(mode==1) epsd=sharedPreferences.getString(name,defaultString);
+        if(mode==0) {
+            String epsd1=sharedPreferences.getString(name,defaultString);
+            String epsd2=getEncryptedPsdFromFile(name);
+            String epsd3=getEncryptedPsdFromDB(name);
+            return (!epsd1.equals(defaultString)) && epsd1.equals(MD5Utils.myMD5Encrypt(rawPsd)) &&
+                    (!epsd2.equals(defaultString)) && epsd2.equals(MD5Utils.myMD5Encrypt(rawPsd)) &&
+                    (!epsd3.equals(defaultString)) && epsd3.equals(MD5Utils.myMD5Encrypt(rawPsd));
+        }
+        else if(mode==1) epsd=sharedPreferences.getString(name,defaultString);
         else if(mode==2) epsd=getEncryptedPsdFromFile(name);
         else if(mode==3) epsd=getEncryptedPsdFromDB(name);
         return (!epsd.equals(defaultString)) && epsd.equals(MD5Utils.myMD5Encrypt(rawPsd));
@@ -214,11 +223,11 @@ public class SignInActivity extends Activity {
                 fileOutputStream.flush();
                 fileOutputStream.close();
 
-                Log.e("TAG","Succeffully saved to file.");
+                //Log.e("TAG","Succeffully saved to file.");
                 //Toast.makeText(this,"Successfully saved file",Toast.LENGTH_SHORT).show();
             }catch (IOException e){
-                Log.e("TAG","Fail to save file.");
-                e.printStackTrace();
+                //Log.e("TAG","Fail to save file.");
+                //e.printStackTrace();
                 Toast.makeText(this,"Fail save to file",Toast.LENGTH_SHORT).show();
             }
         }
@@ -241,8 +250,8 @@ public class SignInActivity extends Activity {
             }
             fis.close();
         }catch (IOException e){
-            e.printStackTrace();
-            Log.e("TAG","Fail To Read File!");
+            //e.printStackTrace();
+            //Log.e("TAG","Fail To Read File!");
             Toast.makeText(this,"Fail save to file",Toast.LENGTH_SHORT).show();
         }
         return defaultString;
@@ -257,7 +266,7 @@ public class SignInActivity extends Activity {
             //DB.execSQL("insert into user values()",new String[]{name,MD5Utils.myMD5Encrypt(pswd)});//这种方式会出错
             Toast.makeText(this,"数据库插入成功",Toast.LENGTH_SHORT).show();
         }catch (SQLException e){
-            e.printStackTrace();
+            //e.printStackTrace();
             Toast.makeText(this,"数据库操作失败",Toast.LENGTH_SHORT).show();
         }
         DB.close();
@@ -274,7 +283,7 @@ public class SignInActivity extends Activity {
             res.close();
             return ep;
         }catch (SQLException e){
-            e.printStackTrace();
+            //e.printStackTrace();
             Toast.makeText(this,"数据库操作失败",Toast.LENGTH_SHORT).show();
         }
         DB.close();

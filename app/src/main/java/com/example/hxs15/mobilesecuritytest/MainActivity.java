@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -32,9 +33,17 @@ public class MainActivity extends AppCompatActivity {
         initWebView();
     }
 
+    class JsObject {
+        @JavascriptInterface
+        public String toString() { return "injectedObject"; }
+    }
     public void initWebView(){
         progressBar=findViewById(R.id.main_web_progressbar);
         webView=findViewById(R.id.main_web_view);
+        webView.addJavascriptInterface(new JsObject(), "injectedObject");
+        webView.removeJavascriptInterface("searchBoxJavaBridge_");
+        webView.removeJavascriptInterface("accessibility");
+        webView.removeJavascriptInterface("accessibilityTraversal");
         webView.setWebViewClient(webViewClient);
         webView.loadUrl(JWBUrl);
     }
@@ -90,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
             webView.loadUrl(url);
             return true;
         }
+
+
     };
 
 
